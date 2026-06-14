@@ -2,6 +2,7 @@
   "expo": {
     "name": "mobile-app",
     "slug": "mobile-app",
+    "owner": "giampier_aliaga",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -42,6 +43,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "167432bb-7b1c-4bd0-8621-c75799e2e41d"
+      }
     }
   }
 }
