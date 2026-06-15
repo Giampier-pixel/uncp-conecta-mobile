@@ -7,11 +7,13 @@ import {
   AppText,
   Button,
   Card,
+  EmptyState,
   GradientCard,
   Input,
   Screen,
 } from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
+import { useConvocatoria } from '@/lib/convocatoria';
 import type { OrientResult } from '@/lib/types';
 import { colors, radii, space } from '@/theme/theme';
 
@@ -38,6 +40,8 @@ export default function AsistenteScreen() {
   const [orient, setOrient] = useState<OrientResult | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const { isOpen, loading: convoLoading } = useConvocatoria();
 
   // Al entrar (o volver) a la pantalla, iniciar siempre un chat nuevo: no mostrar el anterior.
   useFocusEffect(
@@ -99,6 +103,33 @@ export default function AsistenteScreen() {
   // The most recent user message (for 503 fallback prefill)
   const lastUserContent = messages.filter((m) => m.role === 'user').slice(-1)[0]?.content ?? input.trim();
 
+  // Sin convocatoria abierta, el asistente no está disponible (gate por acceso directo).
+  if (!convoLoading && !isOpen) {
+    return (
+      <Screen scroll>
+        <View style={{ marginTop: space[5], marginBottom: space[5] }}>
+          <AppText variant="h1" style={{ marginBottom: space[2] }}>
+            Asistente
+          </AppText>
+        </View>
+        <EmptyState
+          icon="time-outline"
+          title="Convocatoria cerrada"
+          message="El asistente y el envío de solicitudes están disponibles solo cuando hay una convocatoria abierta. Mientras tanto puedes revisar tus solicitudes o explorar el catálogo de servicios."
+          action={{ title: 'Ver catálogo de servicios', onPress: () => router.push('/catalogo') }}
+        />
+        <View style={{ marginTop: space[4] }}>
+          <Button
+            title="Hacer seguimiento"
+            variant="secondary"
+            fullWidth
+            onPress={() => router.push('/seguimiento')}
+          />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll>
       {/* Heading */}
@@ -106,28 +137,19 @@ export default function AsistenteScreen() {
         <AppText variant="h1" style={{ marginBottom: space[2] }}>
           Asistente
         </AppText>
-        <AppText variant="body" muted>
-          Cuéntanos qué necesitas y te orientamos.
-        </AppText>
       </View>
 
       {/* Empty state: intro + example prompts */}
       {!hasMessages ? (
         <View style={{ gap: space[4], marginBottom: space[6] }}>
           <GradientCard>
-            <AppText variant="overline" color="rgba(255,255,255,0.70)" style={{ marginBottom: space[2] }}>
-              Orientación con IA
-            </AppText>
             <AppText variant="bodyLg" color={colors.textOnPrimary} style={{ marginBottom: space[2] }}>
-              Te ayudamos a elegir un servicio
-            </AppText>
-            <AppText variant="bodySm" color="rgba(255,255,255,0.75)">
-              Describe brevemente tu situación y recibirás orientación personalizada.
+              Describe tu situación como en los ejemplos de abajo
             </AppText>
           </GradientCard>
 
           <AppText variant="overline" muted style={{ marginTop: space[2] }}>
-            Ejemplos de solicitudes
+            Ejemplos
           </AppText>
 
           {EXAMPLE_PROMPTS.map((prompt, i) => (
@@ -197,9 +219,6 @@ export default function AsistenteScreen() {
           {/* Confidence */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
             <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-            <AppText variant="overline" color={colors.primary}>
-              Confianza: {Math.round(orient.confidence * 100)}%
-            </AppText>
           </View>
 
           {/* Category + support type */}
@@ -270,7 +289,7 @@ export default function AsistenteScreen() {
 
           {/* CTA */}
           <Button
-            title="Ver servicios que la UNCP puede ofrecerte"
+            title="Presiona aquí para ver servicios que la UNCP puede ofrecerte"
             variant="gradient"
             fullWidth
             onPress={() => {
@@ -280,6 +299,10 @@ export default function AsistenteScreen() {
                   areaId: orient.suggestedAreaId ?? '',
                   areaName: orient.suggestedArea,
                   category: orient.category,
+                  // Lo que el ciudadano escribió en el chat, para prellenar la solicitud.
+                  description: lastUserContent,
+                  // Nonce: fuerza al catálogo a resincronizar los filtros en cada consulta nueva.
+                  ts: String(Date.now()),
                 },
               });
             }}
@@ -353,7 +376,7 @@ export default function AsistenteScreen() {
             setInput(t);
             setErrorMsg('');
           }}
-          placeholder="Describe tu necesidad (mín. 5 caracteres)..."
+          placeholder="Describe tu situación al menos con 5 palabras"
           multiline
           maxLength={2000}
         />

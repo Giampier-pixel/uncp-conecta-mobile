@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { AppText, Card, GradientCard, Screen, Skeleton } from '@/components/ui';
-import { api, ApiError } from '@/lib/api';
-import type { ConvocatoriaStatus } from '@/lib/types';
+import { useConvocatoria } from '@/lib/convocatoria';
 import { colors, radii, space } from '@/theme/theme';
 
 function formatFecha(iso?: string | null): string {
@@ -53,21 +51,12 @@ function ActionCard({
 }
 
 export default function InicioScreen() {
-  const [convocatoria, setConvocatoria] = useState<ConvocatoriaStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: convocatoria, loading, isOpen: abierta } = useConvocatoria();
 
-  useEffect(() => {
-    api
-      .get('/convocatorias/current')
-      .then((data: ConvocatoriaStatus) => setConvocatoria(data))
-      .catch((err) => {
-        if (err instanceof ApiError) console.warn('ConvocatoriaError:', err.message);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const abierta = convocatoria?.status === 'abierta';
   const cierre = formatFecha(convocatoria?.current?.closesAt);
+  // Solo bloqueamos asistente/solicitud cuando hay certeza de que está cerrada
+  // (evita ocultar las acciones mientras aún se consulta el estado).
+  const cerrada = !loading && !abierta;
 
   return (
     <Screen scroll>
@@ -96,28 +85,30 @@ export default function InicioScreen() {
         </Pressable>
       </View>
 
-      {/* Hero card → asistente */}
-      <Pressable
-        onPress={() => router.push('/asistente')}
-        style={({ pressed }) => ({
-          transform: [{ scale: pressed ? 0.98 : 1 }],
-          marginBottom: space[4],
-        })}>
-        <GradientCard>
-          <AppText
-            variant="h2"
-            color={colors.textOnPrimary}
-            style={{ marginBottom: space[3] }}>
-            Cuéntanos tu necesidad y te ayudaremos a realizar tu solicitud
-          </AppText>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
-            <Ionicons name="sparkles" size={18} color={colors.textOnPrimary} />
-            <AppText variant="bodyLg" color="rgba(255,255,255,0.92)">
-              Abrir asistente
+      {/* Hero card → asistente (solo con convocatoria abierta) */}
+      {!cerrada ? (
+        <Pressable
+          onPress={() => router.push('/asistente')}
+          style={({ pressed }) => ({
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+            marginBottom: space[4],
+          })}>
+          <GradientCard>
+            <AppText
+              variant="h2"
+              color={colors.textOnPrimary}
+              style={{ marginBottom: space[3] }}>
+              Cuéntanos tu necesidad y te ayudaremos a realizar tu solicitud
             </AppText>
-          </View>
-        </GradientCard>
-      </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
+              <Ionicons name="sparkles" size={18} color={colors.textOnPrimary} />
+              <AppText variant="bodyLg" color="rgba(255,255,255,0.92)">
+                Presiona aquí para abrir el asistente
+              </AppText>
+            </View>
+          </GradientCard>
+        </Pressable>
+      ) : null}
 
       {/* Convocatoria */}
       <Card style={{ marginBottom: space[6] }}>
@@ -141,14 +132,16 @@ export default function InicioScreen() {
       </Card>
 
       {/* Action cards */}
-      <ActionCard
-        icon="document-text-outline"
-        text="Si tienes claro todo, solicita aquí"
-        onPress={() => router.push('/solicitud/nueva')}
-      />
+      {!cerrada ? (
+        <ActionCard
+          icon="document-text-outline"
+          text="Realiza tu solicitud sin orientación"
+          onPress={() => router.push('/solicitud/nueva')}
+        />
+      ) : null}
       <ActionCard
         icon="search-outline"
-        text="Si quieres saber en qué estado está tu solicitud, ingresa aquí"
+        text="Mira si tu solicitud fue aceptada o no"
         onPress={() => router.push('/seguimiento')}
       />
       <ActionCard

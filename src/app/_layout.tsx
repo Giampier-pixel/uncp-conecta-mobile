@@ -14,6 +14,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { loadApiBaseUrl } from '@/config';
+import { ConvocatoriaProvider } from '@/lib/convocatoria';
 import { colors } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -39,15 +40,17 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.canvas },
-          }}
-        />
-      </View>
+      <ConvocatoriaProvider>
+        <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.canvas },
+            }}
+          />
+        </View>
+      </ConvocatoriaProvider>
     </SafeAreaProvider>
   );
 }

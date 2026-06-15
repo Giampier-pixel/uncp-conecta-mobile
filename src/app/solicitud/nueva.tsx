@@ -12,11 +12,13 @@ import {
   Button,
   Card,
   Chip,
+  EmptyState,
   Input,
   Screen,
   ScreenHeader,
 } from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
+import { useConvocatoria } from '@/lib/convocatoria';
 import type {
   ApplicantType,
   CreateRequestBody,
@@ -135,8 +137,8 @@ function validate(form: FormState): FormErrors {
   const desc = form.description.trim();
   if (!desc) {
     errors.description = 'Campo requerido';
-  } else if (desc.length < 10) {
-    errors.description = 'Debe tener al menos 10 caracteres';
+  } else if (desc.length < 5) {
+    errors.description = 'Debe tener al menos 5 caracteres';
   } else if (desc.length > 5000) {
     errors.description = 'No puede superar los 5000 caracteres';
   }
@@ -257,6 +259,8 @@ export default function NuevaSolicitudScreen() {
   const [signature, setSignature] = useState('');
   const [padOpen, setPadOpen] = useState(false);
 
+  const { isOpen, loading: convoLoading } = useConvocatoria();
+
   function setField(key: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -298,6 +302,29 @@ export default function NuevaSolicitudScreen() {
     }
   }
 
+  // ─── Convocatoria cerrada: no se permite crear solicitudes ─────────────────
+  if (!convoLoading && !isOpen) {
+    return (
+      <Screen scroll>
+        <ScreenHeader title="Nueva solicitud" subtitle="Solicitud de apoyo a la UNCP" />
+        <EmptyState
+          icon="time-outline"
+          title="Convocatoria cerrada"
+          message="El envío de solicitudes está disponible solo cuando hay una convocatoria abierta. Puedes hacer seguimiento de tus solicitudes o explorar el catálogo de servicios mientras tanto."
+          action={{ title: 'Ver catálogo de servicios', onPress: () => router.push('/catalogo') }}
+        />
+        <View style={{ marginTop: space[4] }}>
+          <Button
+            title="Hacer seguimiento"
+            variant="secondary"
+            fullWidth
+            onPress={() => router.replace('/seguimiento')}
+          />
+        </View>
+      </Screen>
+    );
+  }
+
   // ─── Success view ─────────────────────────────────────────────────────────
   if (result) {
     return (
@@ -319,7 +346,7 @@ export default function NuevaSolicitudScreen() {
         variant="overline"
         muted
         style={{ marginTop: space[6], marginBottom: space[3] }}>
-        Tipo de solicitante
+        ELIGE EL GRUPO AL CUAL PERTENECES
       </AppText>
       <Card style={{ gap: space[4] }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space[2] }}>

@@ -19,7 +19,13 @@ import { colors, space } from '@/theme/theme';
 type Tab = 'servicios' | 'facultades';
 
 export default function CatalogoScreen() {
-  const params = useLocalSearchParams<{ areaId?: string; areaName?: string; category?: string }>();
+  const params = useLocalSearchParams<{
+    areaId?: string;
+    areaName?: string;
+    category?: string;
+    description?: string;
+    ts?: string;
+  }>();
 
   const [tab, setTab] = useState<Tab>('servicios');
   const [services, setServices] = useState<Service[]>([]);
@@ -30,6 +36,15 @@ export default function CatalogoScreen() {
     params.category && !params.areaId ? params.category : 'Todas',
   );
   const [areaFilter, setAreaFilter] = useState<string>(params.areaId ?? '');
+
+  // Resincroniza los filtros cada vez que llegamos con parámetros nuevos (p. ej. desde
+  // el asistente con otra necesidad). La pantalla del catálogo permanece montada como tab,
+  // por lo que sin esto conservaría el área de la consulta anterior. El nonce `ts` garantiza
+  // que también se actualice cuando el área sugerida es la misma que la anterior.
+  useEffect(() => {
+    setAreaFilter(params.areaId ?? '');
+    setCategoryFilter(params.category && !params.areaId ? params.category : 'Todas');
+  }, [params.areaId, params.category, params.ts]);
 
   useEffect(() => {
     setFetchError('');
@@ -154,7 +169,13 @@ export default function CatalogoScreen() {
               }}
             />
           ) : (
-            filteredServices.map((service) => <ServiceCard key={service.id} service={service} />)
+            filteredServices.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                prefillDescription={params.description}
+              />
+            ))
           )}
         </View>
       ) : null}
@@ -173,7 +194,13 @@ export default function CatalogoScreen() {
   );
 }
 
-function ServiceCard({ service }: { service: Service }) {
+function ServiceCard({
+  service,
+  prefillDescription,
+}: {
+  service: Service;
+  prefillDescription?: string;
+}) {
   return (
     <Card style={{ gap: space[4] }}>
       <AppText variant="overline" color={colors.primary}>
@@ -232,6 +259,7 @@ function ServiceCard({ service }: { service: Service }) {
               supportType: service.supportTypes[0] ?? '',
               suggestedAreaId: service.facultyArea.id,
               suggestedAreaName: service.facultyArea.name,
+              ...(prefillDescription ? { description: prefillDescription } : {}),
             },
           });
         }}

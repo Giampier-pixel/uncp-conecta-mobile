@@ -3,9 +3,15 @@ import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
+import { useConvocatoria } from '@/lib/convocatoria';
 import { colors } from '@/theme/theme';
 
 export default function TabsLayout() {
+  const { isOpen, loading } = useConvocatoria();
+  // Sin convocatoria abierta, el asistente no está disponible: se oculta su pestaña.
+  // Mientras carga el estado mantenemos la pestaña visible para evitar parpadeos.
+  const asistenteOculto = !loading && !isOpen;
+
   return (
     <Tabs
       screenOptions={{
@@ -40,6 +46,7 @@ export default function TabsLayout() {
         name="asistente"
         options={{
           title: 'Asistente',
+          href: asistenteOculto ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
           ),
