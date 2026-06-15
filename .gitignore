@@ -2,7 +2,7 @@
 
 # dependencies
 node_modules/
-
+.claude/
 # Expo
 .expo/
 dist/
@@ -13,6 +13,7 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.md
 *.p8
 *.p12
 *.key
